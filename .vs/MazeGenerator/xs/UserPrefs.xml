@@ -1,0 +1,14 @@
+﻿<Properties StartupConfiguration="{FF02D825-E5E6-CD2C-F5A3-2C30D07DC570}|">
+  <MonoDevelop.Ide.Workbench ActiveDocument="Assets/Scripts/MazeGenerator.cs">
+    <Files>
+      <File FileName="Assets/Scripts/MazeGenerator.cs" Line="304" Column="42" />
+    </Files>
+  </MonoDevelop.Ide.Workbench>
+  <MonoDevelop.Ide.DebuggingService.PinnedWatches />
+  <MonoDevelop.Ide.Workspace ActiveConfiguration="Debug" />
+  <MonoDevelop.Ide.ItemProperties.Assembly-CSharp PreferredExecutionTarget="Unity.Editor" />
+  <MonoDevelop.Ide.DebuggingService.Breakpoints>
+    <BreakpointStore />
+  </MonoDevelop.Ide.DebuggingService.Breakpoints>
+  <MultiItemStartupConfigurations />
+</Properties>
