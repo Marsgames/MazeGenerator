@@ -29,6 +29,8 @@ ScriptsOnlyBuild:
       Script: {instanceID: 0}
     - Class: 28
       Script: {instanceID: 0}
+    - Class: 29
+      Script: {instanceID: 0}
     - Class: 33
       Script: {instanceID: 0}
     - Class: 43
@@ -73,6 +75,8 @@ ScriptsOnlyBuild:
       Script: {instanceID: 0}
     - Class: 157
       Script: {instanceID: 0}
+    - Class: 192
+      Script: {instanceID: 0}
     - Class: 198
       Script: {instanceID: 0}
     - Class: 199
@@ -84,6 +88,8 @@ ScriptsOnlyBuild:
     - Class: 224
       Script: {instanceID: 0}
     - Class: 258
+      Script: {instanceID: 0}
+    - Class: 363
       Script: {instanceID: 0}
   scriptHashData:
   - hash:
@@ -586,7 +592,7 @@ ScriptsOnlyBuild:
     className: NavMeshModifierVolume
   - hash:
       serializedVersion: 2
-      Hash: b14dbd18d52ecdce09796494db0f9202
+      Hash: 426b2da88bb07a9e8953a51c1fdfd4a9
     assemblyName: Assembly-CSharp.dll
     namespaceName: 
     className: MazeGenerator

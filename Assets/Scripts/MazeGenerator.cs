@@ -11,7 +11,8 @@ public class MazeGenerator : MonoBehaviour
     [SerializeField] private GameObject m_floorPrefab = null;
     [SerializeField] private GameObject m_playerPrefab = null;
     [SerializeField] private GameObject m_trailPrefab = null;
-    [SerializeField] GameObject m_trailContainer = null;
+    [SerializeField] private GameObject m_trailContainer = null;
+    [SerializeField] private bool m_randomStartAndEnd = false;
 
     private int m_height = 7;
     private int m_width = 4;
@@ -39,6 +40,7 @@ public class MazeGenerator : MonoBehaviour
         m_mainCamera = Camera.main;
         m_navmesh = FindObjectOfType<NavMeshSurface>();
         m_score = FindObjectOfType<Score>();
+        GameObject.Find("CubeForOcclusion").SetActive(false);
 
         //Random.InitState(0);
 
@@ -81,6 +83,13 @@ public class MazeGenerator : MonoBehaviour
 
             go.transform.SetParent(m_trailContainer.transform);
         }
+
+        // E to enable / disable random start & end
+        if (Input.GetKeyDown(KeyCode.E))
+        {
+            m_randomStartAndEnd = !m_randomStartAndEnd;
+        }
+
 
 
         // Those 2 functions are from https://answers.unity.com/questions/20228/mouse-wheel-zoom.html
@@ -324,13 +333,34 @@ public class MazeGenerator : MonoBehaviour
 
         // Paint the begining and the end of the level
         // Instantiate the player
-        PaintCell(0, 0, Color.blue);
-        PaintCell(m_width - 1, m_height - 1, Color.green);
-        m_cells[m_width * m_height - 1].GetFloor().AddComponent<EndLevel>();
-        Vector3 playerPosition = m_cells[0].GetFloor().transform.position;
-        playerPosition.y += .5f;
+        int endLevelIndex = m_width * m_height - 1;
+        int endLevelX = m_width - 1;
+        int endLevelY = m_height - 1;
+
+        int startPlayerIndex = 0;
+        int startPlayerX = 0;
+        int startPlayerY = 0;
+        if (m_randomStartAndEnd)
+        {
+            endLevelIndex = Random.Range(0, m_width * m_height + 1);
+            endLevelX = endLevelIndex % m_width;
+            endLevelY = endLevelIndex / m_width;
+
+            startPlayerIndex = Random.Range(0, m_width * m_height + 1);
+            startPlayerX = startPlayerIndex % m_width;
+            startPlayerY = startPlayerIndex / m_width;
+        }
+
+        PaintCell(endLevelX, endLevelY, Color.green);
+        m_cells[endLevelIndex].GetFloor().AddComponent<EndLevel>();
+
         m_navmesh.BuildNavMesh();
-        m_objective = m_cells[m_width * m_height - 1].GetFloor().transform.position;
+        m_objective = m_cells[endLevelIndex].GetFloor().transform.position;
+
+
+        PaintCell(startPlayerX, startPlayerY, Color.blue);
+        Vector3 playerPosition = m_cells[startPlayerIndex].GetFloor().transform.position;
+        playerPosition.y += .5f;
         m_player = Instantiate(m_playerPrefab, playerPosition, Quaternion.identity);
     }
 
