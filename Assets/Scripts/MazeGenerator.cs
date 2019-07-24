@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using System.Collections;
 using System.Diagnostics;
+using Debug = UnityEngine.Debug;
 
 public class MazeGenerator : MonoBehaviour
 {
@@ -16,6 +17,7 @@ public class MazeGenerator : MonoBehaviour
     private float m_size = 6;
     private Cell[] m_cells = new Cell[28];
     private float m_waitTimer = 1;
+    private bool m_diggingComplete;
     #endregion Variables
 
     #region Unity's functions
@@ -33,12 +35,14 @@ public class MazeGenerator : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        // Space to go to the next level
         if (Input.GetKeyDown(KeyCode.Space))
         {
             StopAllCoroutines();
             GrowMaze();
             m_currentX = 0;
             m_currentY = 0;
+            m_diggingComplete = false;
             StartCoroutine(InitMaze());
         }
     }
@@ -66,6 +70,7 @@ public class MazeGenerator : MonoBehaviour
 
     /// <summary>
     /// Create the maze
+    /// This function has to be called in StartCoroutine()
     /// </summary>
     IEnumerator InitMaze()
     {
@@ -75,13 +80,12 @@ public class MazeGenerator : MonoBehaviour
         Stopwatch timer = Stopwatch.StartNew();
         timer.Start();
 
-        int x, y;
-        for (int index = 0; index < m_width * m_height; index++)
+        int x, y, indexMax = m_width * m_height;
+        for (int index = 0; index < indexMax; index++)
         {
             x = index % m_width;
             y = index / m_width;
             cell = new Cell();
-
             cellGO = new GameObject("Cell[" + x + ", " + y + "] - index " + index);
 
             floor = Instantiate(m_floorPrefab, new Vector3(x * m_size, -(m_size / 2f), y * m_size), Quaternion.identity);
@@ -123,6 +127,7 @@ public class MazeGenerator : MonoBehaviour
             cellGO.transform.SetParent(transform);
             m_cells[index] = cell;
 
+            // Warning but it works correctly
             if (0 == (y * m_height + x) % m_waitTimer)
             {
                 yield return new WaitForSecondsRealtime(.01f);
@@ -135,112 +140,157 @@ public class MazeGenerator : MonoBehaviour
             m_waitTimer += 1.5f;
         }
 
-        print("all walls are built");
-        // Start digging the maze
-        //MazeDigger md = new MazeDigger(m_width, m_height, m_cells);
-        UnityEngine.Debug.Log("Start digging");
         StartDigging();
 
         yield return null;
     }
 
+    /// <summary>
+    /// Create the maze while all cells are not digged
+    /// </summary>
     public void StartDigging()
     {
-        //DestroyWall(2, 1, 1);
         PaintCell(0, 0, Color.red);
-
-        //DestroyWall(3, 0, 1);
-        //DestroyWall(2, 0, 1);
-        //DestroyWall(2, 1, 1);
-        //DestroyWall(1, 2, 1);
-        //m_cells[m_currentX, m_currentY].SetIsVisited(true);
-
-        //while (!m_diggingComplete)
-        int i = 0;
-        while (i < 1)
+        if (m_diggingComplete)
         {
-            StartCoroutine(DigNewTunnel());
-            FindNewWay();
-            i++;
+            return;
         }
 
-        //print("CanDig(0, 0) : " + CanDig(0, 0));
-        //print("CellIsVisited(-1, 0) : " + CellIsVisited(-1, 0));
+        StartCoroutine(DigNewTunnel());
     }
 
+    /// <summary>
+    /// Get a random direction and remove a wall if it's possible while we're not stuck (all cells around are already visited)
+    /// This function as to be called in StartCoroutine()
+    /// </summary>
     IEnumerator DigNewTunnel()
     {
-        UnityEngine.Debug.Log("CanDig(" + m_currentX + ", " + (m_currentY + 1) + ") : " + CanDig(m_currentX, m_currentY + 1));
+        Stopwatch timer = new Stopwatch();
+        timer.Start();
         while (CanDig(m_currentX, m_currentY))
         {
             // 0 gauche
             // 1 haut
             // 2 droite
             // 3 bas
-            int dir = Random.Range(0, 3);
+            int dir = Random.Range(0, 4);
+            if (4 == dir)
+            {
+                Debug.LogError("dir == 4, valeur impossible pour le switch");
+            }
 
             switch (dir)
             {
                 case 0: // gauche
-                    print("currentX - 1 : " + (m_currentX - 1));
                     if (CellIsVisited(m_currentX - 1, m_currentY))
                     {
-                        yield return null;
+                        continue;
                     }
-
-                    DestroyWall(0, m_currentX, m_currentY);
-                    m_currentX--;
+                    else
+                    {
+                        DestroyWall(0, m_currentX, m_currentY);
+                        m_currentX--;
+                    }
                     break;
 
                 case 1: // haut
                     if (CellIsVisited(m_currentX, m_currentY + 1))
                     {
-                        yield return null;
+                        continue;
                     }
-                    DestroyWall(1, m_currentX, m_currentY);
-                    m_currentY++;
+                    else
+                    {
+                        DestroyWall(1, m_currentX, m_currentY);
+                        m_currentY++;
+                    }
                     break;
 
                 case 2: // droite
                     if (CellIsVisited(m_currentX + 1, m_currentY))
                     {
-                        yield return null;
+                        continue;
                     }
-                    DestroyWall(2, m_currentX, m_currentY);
-                    m_currentX++;
+                    else
+                    {
+                        DestroyWall(2, m_currentX, m_currentY);
+                        m_currentX++;
+                    }
                     break;
 
                 case 3: // bas
                     if (CellIsVisited(m_currentX, m_currentY - 1))
                     {
-                        yield return null;
+                        continue;
                     }
-                    DestroyWall(3, m_currentX, m_currentY);
-                    m_currentY--;
+                    else
+                    {
+                        DestroyWall(3, m_currentX, m_currentY);
+                        m_currentY--;
+                    }
                     break;
             }
 
-            // adapter en fonction de la taille de la grille
-            yield return new WaitForSecondsRealtime(0.1f);
+
 
             int index = m_currentY * m_width + m_currentX;
             int indexMax = m_width * m_height;
 
-            if (index < 0 || index > indexMax)
+            if (index < 0 || index >= indexMax)
             {
-                yield return null;
+                continue;
             }
             else
             {
+                //// adapter en fonction de la taille de la grille
+                if (timer.Elapsed < new System.TimeSpan(0, 0, 10))
+                {
+                    yield return null;
+                }
                 PaintCell(m_currentX, m_currentY, Color.red);
                 m_cells[index].SetIsVisited(true);
             }
         }
+
+        yield return null;
+        FindNewWay();
     }
 
+    /// <summary>
+    /// Find a cell wich have an adjacent cell not visited
+    /// </summary>
     void FindNewWay()
     {
+        m_diggingComplete = true; // Set it to this, and see if we can prove otherwise below!
 
+        int x, y, indexMax = m_width * m_height;
+        for (int index = 0; index < indexMax; index++)
+        {
+            if (index >= indexMax)
+            {
+                print("index : " + index);
+                continue;
+            }
+
+            x = index % m_width;
+            y = index / m_width;
+
+            if (!m_cells[index].GetIsVisited() && IsThereAnAdjacentVisitedCell(x, y))
+            {
+                m_diggingComplete = false;
+                m_currentX = x;
+                m_currentY = y;
+
+                m_cells[index].SetIsVisited(true);
+                PaintCell(x, y, Color.red);
+
+                StartDigging();
+                return;
+            }
+        }
+
+        PaintCell(0, 0, Color.blue);
+        PaintCell(m_width - 1, m_height - 1, Color.green);
+        m_cells[m_width * m_height - 1].GetFloor().AddComponent<EndLevel>();
     }
 
     /// <summary>
@@ -256,7 +306,7 @@ public class MazeGenerator : MonoBehaviour
 
         // x + 1
         int index = (positionX + 1) + positionY * m_width;
-        if (index > 0 && index < indexMax && positionX < m_width && !m_cells[index].GetIsVisited())
+        if (positionX > 0 && positionX < m_width - 1 && positionX < m_width && !m_cells[index].GetIsVisited())
         {
             canDig = true;
         }
@@ -293,22 +343,21 @@ public class MazeGenerator : MonoBehaviour
     /// <param name="cellY">Cell y.</param>
     private bool CellIsVisited(int cellX, int cellY)
     {
-        if (cellX < 0 || cellX > m_width || cellY < 0 || cellY > m_height)
+        if (cellX < 0 || cellX >= m_width || cellY < 0 || cellY >= m_height)
         {
-            // on ne pourra pas creuser
+            // Index out of range
             return true;
         }
 
         int index = cellY * m_width + cellX;
         int indexMax = m_width * m_height;
-        if (index < 0 || index > indexMax || m_cells[index].GetIsVisited())
+        if (index < 0 || index >= indexMax)
         {
-            print("impossible de creuser index > max ou dejà visité");
-            // déjà visité, on ne pourra pas creuser
+            // index out of range
             return true;
         }
 
-        return false;
+        return m_cells[index].GetIsVisited();
     }
 
     /// <summary>
@@ -349,7 +398,7 @@ public class MazeGenerator : MonoBehaviour
                 break;
 
             case 2: // droite
-                if (index < 0)
+                if (index < 0 || posX + 1 >= m_width)
                 {
                     return;
                 }
@@ -370,11 +419,56 @@ public class MazeGenerator : MonoBehaviour
 
     }
 
+    /// <summary>
+    /// Returns true if the cell[posX, posY] has an adjacent cell visited, and if so, digs the wall
+    /// </summary>
+    /// <returns><c>true</c>, if there an adjacent visited cell was ised, <c>false</c> otherwise.</returns>
+    /// <param name="posX">Position x.</param>
+    /// <param name="posY">Position y.</param>
+    bool IsThereAnAdjacentVisitedCell(int posX, int posY)
+    {
+        // x - 1
+        if (posX > 0 && m_cells[(posX - 1) + posY * m_width].GetIsVisited())
+        {
+            DestroyWall(0, posX, posY);
+            return true;
+        }
+
+        // x + 1
+        if (posX < m_width && m_cells[(posX + 1) + posY * m_width].GetIsVisited())
+        {
+            DestroyWall(2, posX, posY);
+            return true;
+        }
+
+        // y - 1
+        if (posY > 0 && m_cells[posX + (posY - 1) * m_width].GetIsVisited())
+        {
+            DestroyWall(3, posX, posY);
+            return true;
+        }
+
+        // y + 1
+        if (posY < m_height - 2 && m_cells[posX + (posY + 1) * m_width].GetIsVisited())
+        {
+            DestroyWall(1, posX, posY);
+            return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Paints a cell in the maze
+    /// </summary>
+    /// <param name="posX">Position x.</param>
+    /// <param name="posY">Position y.</param>
+    /// <param name="color">Color.</param>
     void PaintCell(int posX, int posY, Color color)
     {
         int index = posX + posY * m_width;
         int indexMax = m_height * m_width;
-        if (index < 0 || index > indexMax)
+        if (index < 0 || index >= indexMax)
         {
             return;
         }
@@ -383,7 +477,7 @@ public class MazeGenerator : MonoBehaviour
         GameObject floor = m_cells[index].GetFloor();
         if (floor)
         {
-            floor.GetComponent<Renderer>().material.color = color;
+            floor.GetComponent<Renderer>().material.color = color * 0.2f;
         }
 
         // upWall
@@ -442,8 +536,6 @@ public class MazeGenerator : MonoBehaviour
         }
     }
 
-
-
     /// <summary>
     /// Checks if everything is set correctly at start
     /// </summary>
@@ -453,12 +545,12 @@ public class MazeGenerator : MonoBehaviour
 
         if (null == m_wallPrefab)
         {
-            UnityEngine.Debug.LogError("WallPrefab cannot be null in " + name, this);
+            Debug.LogError("WallPrefab cannot be null in " + name, this);
             quit = true;
         }
         if (null == m_floorPrefab)
         {
-            UnityEngine.Debug.LogError("FloorPrefab cannot be null in " + name, this);
+            Debug.LogError("FloorPrefab cannot be null in " + name, this);
             quit = true;
         }
 
@@ -473,7 +565,7 @@ public class MazeGenerator : MonoBehaviour
 
     new void print(object thingToPrint)
     {
-        UnityEngine.Debug.Log(thingToPrint);
+        Debug.Log(thingToPrint);
     }
     #endregion Functions
 

@@ -63,7 +63,9 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Assets\Scripts\Cell.cs" />
+    <Compile Include="Assets\Scripts\EndLevel.cs" />
     <Compile Include="Assets\Scripts\MazeGenerator.cs" />
+    <Compile Include="Assets\Scripts\Player.cs" />
     <None Include="Assets\csc.rsp" />
     <Reference Include="Unity.Timeline.Editor">
       <HintPath>/Users/Raph/Library/CloudStorage/iCloud Drive/Documents/HE/MazeGenerator/Library/ScriptAssemblies/Unity.Timeline.Editor.dll</HintPath>

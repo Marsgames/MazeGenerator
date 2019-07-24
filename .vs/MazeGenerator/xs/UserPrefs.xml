@@ -1,7 +1,9 @@
 ﻿<Properties StartupConfiguration="{FF02D825-E5E6-CD2C-F5A3-2C30D07DC570}|">
-  <MonoDevelop.Ide.Workbench ActiveDocument="Assets/Scripts/MazeGenerator.cs">
+  <MonoDevelop.Ide.Workbench ActiveDocument="Assets/Scripts/Cell.cs">
     <Files>
-      <File FileName="Assets/Scripts/MazeGenerator.cs" Line="304" Column="42" />
+      <File FileName="Assets/Scripts/MazeGenerator.cs" Line="153" Column="36" />
+      <File FileName="Assets/Scripts/EndLevel.cs" Line="1" Column="1" />
+      <File FileName="Assets/Scripts/Cell.cs" Line="24" Column="1" />
     </Files>
   </MonoDevelop.Ide.Workbench>
   <MonoDevelop.Ide.DebuggingService.PinnedWatches />
