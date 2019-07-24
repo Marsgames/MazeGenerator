@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Diagnostics;
 using Debug = UnityEngine.Debug;
+using UnityEngine.AI;
 
 public class MazeGenerator : MonoBehaviour
 {
@@ -9,6 +10,8 @@ public class MazeGenerator : MonoBehaviour
     [SerializeField] private GameObject m_wallPrefab = null;
     [SerializeField] private GameObject m_floorPrefab = null;
     [SerializeField] private GameObject m_playerPrefab = null;
+    //[SerializeField] private GameObject m_pathLighterPrefab = null;
+    [SerializeField] private GameObject m_trailPrefab = null;
 
     private int m_height = 7;
     private int m_width = 4;
@@ -19,6 +22,8 @@ public class MazeGenerator : MonoBehaviour
     private Cell[] m_cells = new Cell[28];
     private float m_waitTimer = 1;
     private bool m_diggingComplete;
+    private Camera m_mainCamera;
+    private NavMeshSurface m_navmesh;
     #endregion Variables
 
     #region Unity's functions
@@ -27,6 +32,8 @@ public class MazeGenerator : MonoBehaviour
     {
         CheckIfOk();
 
+        m_mainCamera = Camera.main;
+        m_navmesh = FindObjectOfType<NavMeshSurface>();
         Random.InitState(0);
 
         StartCoroutine(InitMaze());
@@ -36,10 +43,48 @@ public class MazeGenerator : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+#if UNITY_EDITOR
         // Space to go to the next level
         if (Input.GetKeyDown(KeyCode.Space))
         {
             GoToNextLevel();
+            Debug.LogWarning("/!\\ le navmesh est cassé et l'affichage du chemin peut ne pas fonctionner suite à l'utilisation de la touche espace pour changer de niveau /!\\");
+        }
+#endif
+        // B to show the path
+        if (Input.GetKeyDown(KeyCode.B))
+        {
+            GameObject newGo = new GameObject();
+            NavMeshPath newPath = new NavMeshPath();
+            NavMeshAgent agent = newGo.AddComponent<NavMeshAgent>();
+            Vector3 objective = m_cells[m_width * m_height - 1].GetFloor().transform.position;
+
+            agent.CalculatePath(objective, newPath);
+            if (!agent.isOnOffMeshLink && newPath.status == NavMeshPathStatus.PathComplete)
+            {
+                agent.ResetPath();
+                agent.SetPath(newPath);
+            }
+
+            Destroy(newGo);
+
+            GameObject go = Instantiate(m_trailPrefab, transform.position, transform.rotation);
+            go.name = "trail-" + name;
+            Vector3[] cornersTrail = newPath.corners;
+            for (int i = 0; i < cornersTrail.Length; i++)
+            {
+                cornersTrail[i] += Vector3.up * 2;
+            }
+            go.GetComponent<TrailController>().SetWaypoints(cornersTrail);
+
+
+            //Vector3 pathLighterPosition = m_cells[0].GetFloor().transform.position;
+            //Vector3 endLevelPosition = m_cells[m_width * m_height - 1].GetFloor().transform.position;
+
+            //GameObject pathLighter = Instantiate(m_pathLighterPrefab, pathLighterPosition, Quaternion.identity);
+
+            //NavMeshAgent agent = pathLighter.GetComponent<NavMeshAgent>();
+            //agent.SetDestination(endLevelPosition);
         }
     }
     #endregion Unity's functions
@@ -120,6 +165,8 @@ public class MazeGenerator : MonoBehaviour
             upWall.transform.SetParent(cellGO.transform);
             cell.SetUpWall(upWall);
 
+            //ShowTheWay stw = cellGO.AddComponent<ShowTheWay>();
+            //stw.SetPosition(new Vector3(x * 6, 0, y * 6));
             cellGO.transform.SetParent(transform);
             m_cells[index] = cell;
 
@@ -182,11 +229,11 @@ public class MazeGenerator : MonoBehaviour
                     {
                         continue;
                     }
-                    else
-                    {
-                        DestroyWall(0, m_currentX, m_currentY);
-                        m_currentX--;
-                    }
+                    //else
+                    //{
+                    DestroyWall(0, m_currentX, m_currentY);
+                    m_currentX--;
+                    //}
                     break;
 
                 case 1: // haut
@@ -194,11 +241,11 @@ public class MazeGenerator : MonoBehaviour
                     {
                         continue;
                     }
-                    else
-                    {
-                        DestroyWall(1, m_currentX, m_currentY);
-                        m_currentY++;
-                    }
+                    //else
+                    //{
+                    DestroyWall(1, m_currentX, m_currentY);
+                    m_currentY++;
+                    //}
                     break;
 
                 case 2: // droite
@@ -206,11 +253,11 @@ public class MazeGenerator : MonoBehaviour
                     {
                         continue;
                     }
-                    else
-                    {
-                        DestroyWall(2, m_currentX, m_currentY);
-                        m_currentX++;
-                    }
+                    //else
+                    //{
+                    DestroyWall(2, m_currentX, m_currentY);
+                    m_currentX++;
+                    //}
                     break;
 
                 case 3: // bas
@@ -218,11 +265,11 @@ public class MazeGenerator : MonoBehaviour
                     {
                         continue;
                     }
-                    else
-                    {
-                        DestroyWall(3, m_currentX, m_currentY);
-                        m_currentY--;
-                    }
+                    //else
+                    //{
+                    DestroyWall(3, m_currentX, m_currentY);
+                    m_currentY--;
+                    //}
                     break;
             }
 
@@ -235,16 +282,16 @@ public class MazeGenerator : MonoBehaviour
             {
                 continue;
             }
-            else
+            //else
+            //{
+            //// adapter en fonction de la taille de la grille
+            if (timer.Elapsed < new System.TimeSpan(0, 0, 10))
             {
-                //// adapter en fonction de la taille de la grille
-                if (timer.Elapsed < new System.TimeSpan(0, 0, 10))
-                {
-                    yield return null;
-                }
-                PaintCell(m_currentX, m_currentY, Color.red);
-                m_cells[index].SetIsVisited(true);
+                yield return null;
             }
+            PaintCell(m_currentX, m_currentY, Color.red);
+            m_cells[index].SetIsVisited(true);
+            //}
         }
 
         yield return null;
@@ -256,17 +303,11 @@ public class MazeGenerator : MonoBehaviour
     /// </summary>
     void FindNewWay()
     {
-        m_diggingComplete = true; // Set it to this, and see if we can prove otherwise below!
+        m_diggingComplete = true;
 
         int x, y, indexMax = m_width * m_height;
         for (int index = 0; index < indexMax; index++)
         {
-            if (index >= indexMax)
-            {
-                print("index : " + index);
-                continue;
-            }
-
             x = index % m_width;
             y = index / m_width;
 
@@ -284,11 +325,14 @@ public class MazeGenerator : MonoBehaviour
             }
         }
 
+        // Paint the begining and the end of the level
+        // Instantiate the player
         PaintCell(0, 0, Color.blue);
         PaintCell(m_width - 1, m_height - 1, Color.green);
         m_cells[m_width * m_height - 1].GetFloor().AddComponent<EndLevel>();
         Vector3 playerPosition = m_cells[0].GetFloor().transform.position;
         playerPosition.y += .5f;
+        m_navmesh.BuildNavMesh();
         Instantiate(m_playerPrefab, playerPosition, Quaternion.identity);
     }
 
@@ -457,13 +501,22 @@ public class MazeGenerator : MonoBehaviour
         return false;
     }
 
+    /// <summary>
+    /// Reset variables and launch the next level
+    /// </summary>
     public void GoToNextLevel()
     {
+        Vector3 camPosition = m_mainCamera.transform.position;
+        camPosition.x += 2.5f;
+        camPosition.y += 5.5f;
+        camPosition.z -= 0f;
+
         StopAllCoroutines();
         GrowMaze();
         m_currentX = 0;
         m_currentY = 0;
         m_diggingComplete = false;
+        m_mainCamera.transform.position = camPosition;
         StartCoroutine(InitMaze());
     }
 
