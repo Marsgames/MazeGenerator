@@ -12,6 +12,7 @@ public class MazeGenerator : MonoBehaviour
     [SerializeField] private GameObject m_playerPrefab = null;
     //[SerializeField] private GameObject m_pathLighterPrefab = null;
     [SerializeField] private GameObject m_trailPrefab = null;
+    [SerializeField] GameObject m_trailContainer = null;
 
     private int m_height = 7;
     private int m_width = 4;
@@ -24,6 +25,7 @@ public class MazeGenerator : MonoBehaviour
     private bool m_diggingComplete;
     private Camera m_mainCamera;
     private NavMeshSurface m_navmesh;
+
     #endregion Variables
 
     #region Unity's functions
@@ -76,6 +78,8 @@ public class MazeGenerator : MonoBehaviour
                 cornersTrail[i] += Vector3.up * 2;
             }
             go.GetComponent<TrailController>().SetWaypoints(cornersTrail);
+
+            go.transform.SetParent(m_trailContainer.transform);
 
 
             //Vector3 pathLighterPosition = m_cells[0].GetFloor().transform.position;
@@ -511,6 +515,11 @@ public class MazeGenerator : MonoBehaviour
         camPosition.y += 5.5f;
         camPosition.z -= 0f;
 
+        foreach (Transform child in m_trailContainer.transform)
+        {
+            Destroy(child.gameObject);
+        }
+
         StopAllCoroutines();
         GrowMaze();
         m_currentX = 0;
@@ -613,6 +622,24 @@ public class MazeGenerator : MonoBehaviour
         if (null == m_floorPrefab)
         {
             Debug.LogError("FloorPrefab cannot be null in " + name, this);
+            quit = true;
+        }
+
+        if (null == m_playerPrefab)
+        {
+            Debug.LogError("PlayerPrefab cannot be null in " + name, this);
+            quit = true;
+        }
+
+        if (null == m_trailPrefab)
+        {
+            Debug.LogError("TrailPrefab cannot be null in " + name, this);
+            quit = true;
+        }
+
+        if (null == m_trailContainer)
+        {
+            Debug.LogError("TrailContainer cannot be null in " + name, this);
             quit = true;
         }
 
