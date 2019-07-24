@@ -8,6 +8,7 @@ public class MazeGenerator : MonoBehaviour
     #region Variables
     [SerializeField] private GameObject m_wallPrefab = null;
     [SerializeField] private GameObject m_floorPrefab = null;
+    [SerializeField] private GameObject m_playerPrefab = null;
 
     private int m_height = 7;
     private int m_width = 4;
@@ -38,12 +39,7 @@ public class MazeGenerator : MonoBehaviour
         // Space to go to the next level
         if (Input.GetKeyDown(KeyCode.Space))
         {
-            StopAllCoroutines();
-            GrowMaze();
-            m_currentX = 0;
-            m_currentY = 0;
-            m_diggingComplete = false;
-            StartCoroutine(InitMaze());
+            GoToNextLevel();
         }
     }
     #endregion Unity's functions
@@ -291,6 +287,9 @@ public class MazeGenerator : MonoBehaviour
         PaintCell(0, 0, Color.blue);
         PaintCell(m_width - 1, m_height - 1, Color.green);
         m_cells[m_width * m_height - 1].GetFloor().AddComponent<EndLevel>();
+        Vector3 playerPosition = m_cells[0].GetFloor().transform.position;
+        playerPosition.y += .5f;
+        Instantiate(m_playerPrefab, playerPosition, Quaternion.identity);
     }
 
     /// <summary>
@@ -456,6 +455,16 @@ public class MazeGenerator : MonoBehaviour
         }
 
         return false;
+    }
+
+    public void GoToNextLevel()
+    {
+        StopAllCoroutines();
+        GrowMaze();
+        m_currentX = 0;
+        m_currentY = 0;
+        m_diggingComplete = false;
+        StartCoroutine(InitMaze());
     }
 
     /// <summary>
