@@ -27,6 +27,7 @@ public class MazeGenerator : MonoBehaviour
     private Score m_score;
     private GameObject m_player;
     private Vector3 m_objective;
+    private Vector3 dragOrigin;
     #endregion Variables
 
     #region Unity's functions
@@ -79,6 +80,27 @@ public class MazeGenerator : MonoBehaviour
 
             go.transform.SetParent(m_trailContainer.transform);
         }
+
+
+        // Those 2 functions are from https://answers.unity.com/questions/20228/mouse-wheel-zoom.html
+        if (Input.GetAxis("Mouse ScrollWheel") < 0) // back
+        {
+            m_mainCamera.orthographicSize += 1;
+        }
+        if (Input.GetAxis("Mouse ScrollWheel") > 0) // forward
+        {
+            if (m_mainCamera.orthographicSize < 50)
+            {
+                return;
+            }
+
+            m_mainCamera.orthographicSize -= 1;
+        }
+
+
+        // https://forum.unity.com/threads/click-drag-to-move-camera-script-i-need-the-camera-to-move-in-reverse-directions-help.501604/
+        CameraDrag();
+
     }
     #endregion Unity's functions
 
@@ -481,10 +503,14 @@ public class MazeGenerator : MonoBehaviour
     /// </summary>
     public void GoToNextLevel()
     {
-        Vector3 camPosition = m_mainCamera.transform.position;
-        camPosition.x += 2.5f;
-        camPosition.y += 5.5f;
-        camPosition.z -= 0f;
+        foreach (Player player in FindObjectsOfType<Player>())
+        {
+            Destroy(player.gameObject);
+        }
+        //Vector3 camPosition = m_mainCamera.transform.position;
+        //camPosition.x += 2.5f;
+        //camPosition.y += 5.5f;
+        //camPosition.z -= 0f;
 
         foreach (Transform child in m_trailContainer.transform)
         {
@@ -496,9 +522,27 @@ public class MazeGenerator : MonoBehaviour
         m_currentX = 0;
         m_currentY = 0;
         m_diggingComplete = false;
-        m_mainCamera.transform.position = camPosition;
+        //m_mainCamera.transform.position = camPosition;
+        SetCameraPosition();
         m_score.IncrementScore();
         StartCoroutine(InitMaze());
+    }
+
+    private void SetCameraPosition()
+    {
+        //float halfWidth = m_width / 2;
+        //float halfHeight = m_height / 4;
+        ////Vector3 position = new Vector3(halfWidth * 6, 100, halfHeight * 6);
+
+        //m_mainCamera.transform.position = position;
+
+        Vector3 position = m_mainCamera.transform.position;
+        position.x += 3;
+
+        m_mainCamera.transform.position = position;
+
+        m_mainCamera.orthographicSize += 10;
+
     }
 
     /// <summary>
@@ -577,6 +621,22 @@ public class MazeGenerator : MonoBehaviour
         {
             rightWall.GetComponent<Renderer>().material.color = color;
         }
+    }
+
+    private void CameraDrag()
+    {
+        if (Input.GetMouseButtonDown(0))
+        {
+            dragOrigin = Input.mousePosition;
+            return;
+        }
+
+        if (!Input.GetMouseButton(0)) return;
+
+        Vector3 pos = m_mainCamera.ScreenToViewportPoint(dragOrigin - Input.mousePosition);
+        Vector3 move = new Vector3(pos.x * 2f, 0, pos.y * 2f);
+
+        m_mainCamera.transform.Translate(move, Space.World);
     }
 
     /// <summary>
