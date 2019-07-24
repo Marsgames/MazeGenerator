@@ -39,7 +39,8 @@ public class MazeGenerator : MonoBehaviour
         m_mainCamera = Camera.main;
         m_navmesh = FindObjectOfType<NavMeshSurface>();
         m_score = FindObjectOfType<Score>();
-        Random.InitState(0);
+
+        //Random.InitState(0);
 
         StartCoroutine(InitMaze());
     }
