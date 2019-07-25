@@ -8,6 +8,7 @@ See the project on my portfolio at https://raphdaumas.wixsite.com/portfolio/maze
 
 <br>
 <br>
+
 ___Keyboard array___ --> to move the ball across the maze <br>
 ___Space___ --> to go to the next level (add 1 to the score) <br>
 ___B___ --> to spawn some trails that will show you the shortest path <br>
