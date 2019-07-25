@@ -1,8 +1,11 @@
+<br>
 You can see it in action at https://youtu.be/vED8b872xxk <br>
 See the project on my portfolio at https://raphdaumas.wixsite.com/portfolio/mazegenerator <br>
 <br>
 <br>
+
 ---
+
 <br>
 <br>
 ___Keyboard array___ --> to move the ball across the maze <br>
