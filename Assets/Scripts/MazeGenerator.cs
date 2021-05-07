@@ -10,8 +10,9 @@ public class MazeGenerator : MonoBehaviour
     [SerializeField] private GameObject m_wallPrefab = null;
     [SerializeField] private GameObject m_floorPrefab = null;
     [SerializeField] private GameObject m_playerPrefab = null;
-    //[SerializeField] private GameObject m_pathLighterPrefab = null;
     [SerializeField] private GameObject m_trailPrefab = null;
+    [SerializeField] private GameObject m_trailContainer = null;
+    [SerializeField] private bool m_randomStartAndEnd = false;
 
     private int m_height = 7;
     private int m_width = 4;
@@ -24,6 +25,10 @@ public class MazeGenerator : MonoBehaviour
     private bool m_diggingComplete;
     private Camera m_mainCamera;
     private NavMeshSurface m_navmesh;
+    private Score m_score;
+    private GameObject m_player;
+    private Vector3 m_objective;
+    private Vector3 dragOrigin;
     #endregion Variables
 
     #region Unity's functions
@@ -34,41 +39,40 @@ public class MazeGenerator : MonoBehaviour
 
         m_mainCamera = Camera.main;
         m_navmesh = FindObjectOfType<NavMeshSurface>();
-        Random.InitState(0);
+        m_score = FindObjectOfType<Score>();
+        GameObject.Find("CubeForOcclusion").SetActive(false);
+
+        //Random.InitState(0);
 
         StartCoroutine(InitMaze());
-        //InitMaze();
     }
 
     // Update is called once per frame
     void Update()
     {
-#if UNITY_EDITOR
+        //#if UNITY_EDITOR
         // Space to go to the next level
         if (Input.GetKeyDown(KeyCode.Space))
         {
             GoToNextLevel();
-            Debug.LogWarning("/!\\ le navmesh est cassé et l'affichage du chemin peut ne pas fonctionner suite à l'utilisation de la touche espace pour changer de niveau /!\\");
+            //Debug.LogWarning("/!\\ le navmesh est cassé et l'affichage du chemin peut ne pas fonctionner suite à l'utilisation de la touche espace pour changer de niveau /!\\");
         }
-#endif
+        //#endif
+
         // B to show the path
         if (Input.GetKeyDown(KeyCode.B))
         {
             GameObject newGo = new GameObject();
+            newGo.transform.position = m_player.transform.position;
             NavMeshPath newPath = new NavMeshPath();
             NavMeshAgent agent = newGo.AddComponent<NavMeshAgent>();
-            Vector3 objective = m_cells[m_width * m_height - 1].GetFloor().transform.position;
+            agent.transform.position = m_player.transform.position;
 
-            agent.CalculatePath(objective, newPath);
-            if (!agent.isOnOffMeshLink && newPath.status == NavMeshPathStatus.PathComplete)
-            {
-                agent.ResetPath();
-                agent.SetPath(newPath);
-            }
+            agent.CalculatePath(m_objective, newPath);
 
             Destroy(newGo);
 
-            GameObject go = Instantiate(m_trailPrefab, transform.position, transform.rotation);
+            GameObject go = Instantiate(m_trailPrefab, m_player.transform.position, transform.rotation);
             go.name = "trail-" + name;
             Vector3[] cornersTrail = newPath.corners;
             for (int i = 0; i < cornersTrail.Length; i++)
@@ -77,15 +81,36 @@ public class MazeGenerator : MonoBehaviour
             }
             go.GetComponent<TrailController>().SetWaypoints(cornersTrail);
 
-
-            //Vector3 pathLighterPosition = m_cells[0].GetFloor().transform.position;
-            //Vector3 endLevelPosition = m_cells[m_width * m_height - 1].GetFloor().transform.position;
-
-            //GameObject pathLighter = Instantiate(m_pathLighterPrefab, pathLighterPosition, Quaternion.identity);
-
-            //NavMeshAgent agent = pathLighter.GetComponent<NavMeshAgent>();
-            //agent.SetDestination(endLevelPosition);
+            go.transform.SetParent(m_trailContainer.transform);
         }
+
+        // E to enable / disable random start & end
+        if (Input.GetKeyDown(KeyCode.E))
+        {
+            m_randomStartAndEnd = !m_randomStartAndEnd;
+        }
+
+
+
+        // Those 2 functions are from https://answers.unity.com/questions/20228/mouse-wheel-zoom.html
+        if (Input.GetAxis("Mouse ScrollWheel") < 0) // back
+        {
+            m_mainCamera.orthographicSize += 1;
+        }
+        if (Input.GetAxis("Mouse ScrollWheel") > 0) // forward
+        {
+            if (m_mainCamera.orthographicSize < 50)
+            {
+                return;
+            }
+
+            m_mainCamera.orthographicSize -= 1;
+        }
+
+
+        // https://forum.unity.com/threads/click-drag-to-move-camera-script-i-need-the-camera-to-move-in-reverse-directions-help.501604/
+        CameraDrag();
+
     }
     #endregion Unity's functions
 
@@ -95,8 +120,6 @@ public class MazeGenerator : MonoBehaviour
     /// </summary>
     void GrowMaze()
     {
-        //m_timerDevide += .1f;
-        //m_timeToWait /= m_timerDevide;
         foreach (Transform child in transform)
         {
             Destroy(child.gameObject);
@@ -165,8 +188,6 @@ public class MazeGenerator : MonoBehaviour
             upWall.transform.SetParent(cellGO.transform);
             cell.SetUpWall(upWall);
 
-            //ShowTheWay stw = cellGO.AddComponent<ShowTheWay>();
-            //stw.SetPosition(new Vector3(x * 6, 0, y * 6));
             cellGO.transform.SetParent(transform);
             m_cells[index] = cell;
 
@@ -229,11 +250,8 @@ public class MazeGenerator : MonoBehaviour
                     {
                         continue;
                     }
-                    //else
-                    //{
                     DestroyWall(0, m_currentX, m_currentY);
                     m_currentX--;
-                    //}
                     break;
 
                 case 1: // haut
@@ -241,11 +259,8 @@ public class MazeGenerator : MonoBehaviour
                     {
                         continue;
                     }
-                    //else
-                    //{
                     DestroyWall(1, m_currentX, m_currentY);
                     m_currentY++;
-                    //}
                     break;
 
                 case 2: // droite
@@ -253,11 +268,8 @@ public class MazeGenerator : MonoBehaviour
                     {
                         continue;
                     }
-                    //else
-                    //{
                     DestroyWall(2, m_currentX, m_currentY);
                     m_currentX++;
-                    //}
                     break;
 
                 case 3: // bas
@@ -265,11 +277,8 @@ public class MazeGenerator : MonoBehaviour
                     {
                         continue;
                     }
-                    //else
-                    //{
                     DestroyWall(3, m_currentX, m_currentY);
                     m_currentY--;
-                    //}
                     break;
             }
 
@@ -282,8 +291,6 @@ public class MazeGenerator : MonoBehaviour
             {
                 continue;
             }
-            //else
-            //{
             //// adapter en fonction de la taille de la grille
             if (timer.Elapsed < new System.TimeSpan(0, 0, 10))
             {
@@ -291,7 +298,6 @@ public class MazeGenerator : MonoBehaviour
             }
             PaintCell(m_currentX, m_currentY, Color.red);
             m_cells[index].SetIsVisited(true);
-            //}
         }
 
         yield return null;
@@ -327,13 +333,35 @@ public class MazeGenerator : MonoBehaviour
 
         // Paint the begining and the end of the level
         // Instantiate the player
-        PaintCell(0, 0, Color.blue);
-        PaintCell(m_width - 1, m_height - 1, Color.green);
-        m_cells[m_width * m_height - 1].GetFloor().AddComponent<EndLevel>();
-        Vector3 playerPosition = m_cells[0].GetFloor().transform.position;
-        playerPosition.y += .5f;
+        int endLevelIndex = m_width * m_height - 1;
+        int endLevelX = m_width - 1;
+        int endLevelY = m_height - 1;
+
+        int startPlayerIndex = 0;
+        int startPlayerX = 0;
+        int startPlayerY = 0;
+        if (m_randomStartAndEnd)
+        {
+            endLevelIndex = Random.Range(0, m_width * m_height + 1);
+            endLevelX = endLevelIndex % m_width;
+            endLevelY = endLevelIndex / m_width;
+
+            startPlayerIndex = Random.Range(0, m_width * m_height + 1);
+            startPlayerX = startPlayerIndex % m_width;
+            startPlayerY = startPlayerIndex / m_width;
+        }
+
+        PaintCell(endLevelX, endLevelY, Color.green);
+        m_cells[endLevelIndex].GetFloor().AddComponent<EndLevel>();
+
         m_navmesh.BuildNavMesh();
-        Instantiate(m_playerPrefab, playerPosition, Quaternion.identity);
+        m_objective = m_cells[endLevelIndex].GetFloor().transform.position;
+
+
+        PaintCell(startPlayerX, startPlayerY, Color.blue);
+        Vector3 playerPosition = m_cells[startPlayerIndex].GetFloor().transform.position;
+        playerPosition.y += .5f;
+        m_player = Instantiate(m_playerPrefab, playerPosition, Quaternion.identity);
     }
 
     /// <summary>
@@ -506,18 +534,46 @@ public class MazeGenerator : MonoBehaviour
     /// </summary>
     public void GoToNextLevel()
     {
-        Vector3 camPosition = m_mainCamera.transform.position;
-        camPosition.x += 2.5f;
-        camPosition.y += 5.5f;
-        camPosition.z -= 0f;
+        foreach (Player player in FindObjectsOfType<Player>())
+        {
+            Destroy(player.gameObject);
+        }
+        //Vector3 camPosition = m_mainCamera.transform.position;
+        //camPosition.x += 2.5f;
+        //camPosition.y += 5.5f;
+        //camPosition.z -= 0f;
+
+        foreach (Transform child in m_trailContainer.transform)
+        {
+            Destroy(child.gameObject);
+        }
 
         StopAllCoroutines();
         GrowMaze();
         m_currentX = 0;
         m_currentY = 0;
         m_diggingComplete = false;
-        m_mainCamera.transform.position = camPosition;
+        //m_mainCamera.transform.position = camPosition;
+        SetCameraPosition();
+        m_score.IncrementScore();
         StartCoroutine(InitMaze());
+    }
+
+    private void SetCameraPosition()
+    {
+        //float halfWidth = m_width / 2;
+        //float halfHeight = m_height / 4;
+        ////Vector3 position = new Vector3(halfWidth * 6, 100, halfHeight * 6);
+
+        //m_mainCamera.transform.position = position;
+
+        Vector3 position = m_mainCamera.transform.position;
+        position.x += 3;
+
+        m_mainCamera.transform.position = position;
+
+        m_mainCamera.orthographicSize += 10;
+
     }
 
     /// <summary>
@@ -598,11 +654,28 @@ public class MazeGenerator : MonoBehaviour
         }
     }
 
+    private void CameraDrag()
+    {
+        if (Input.GetMouseButtonDown(0))
+        {
+            dragOrigin = Input.mousePosition;
+            return;
+        }
+
+        if (!Input.GetMouseButton(0)) return;
+
+        Vector3 pos = m_mainCamera.ScreenToViewportPoint(dragOrigin - Input.mousePosition);
+        Vector3 move = new Vector3(pos.x * 2f, 0, pos.y * 2f);
+
+        m_mainCamera.transform.Translate(move, Space.World);
+    }
+
     /// <summary>
     /// Checks if everything is set correctly at start
     /// </summary>
     void CheckIfOk()
     {
+#if UNITY_EDITOR
         bool quit = false;
 
         if (null == m_wallPrefab)
@@ -616,7 +689,25 @@ public class MazeGenerator : MonoBehaviour
             quit = true;
         }
 
-#if UNITY_EDITOR
+        if (null == m_playerPrefab)
+        {
+            Debug.LogError("PlayerPrefab cannot be null in " + name, this);
+            quit = true;
+        }
+
+        if (null == m_trailPrefab)
+        {
+            Debug.LogError("TrailPrefab cannot be null in " + name, this);
+            quit = true;
+        }
+
+        if (null == m_trailContainer)
+        {
+            Debug.LogError("TrailContainer cannot be null in " + name, this);
+            quit = true;
+        }
+
+
         if (!quit)
         {
             return;
